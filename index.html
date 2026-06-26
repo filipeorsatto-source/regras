@@ -419,6 +419,7 @@
         <div class="chart-card"><h3>Regras por Tipo</h3><canvas id="chart-tipo"></canvas></div>
         <div class="chart-card"><h3>Regras por Modelo de Atendimento</h3><canvas id="chart-modelo"></canvas></div>
         <div class="chart-card"><h3>Regras por Prioridade</h3><canvas id="chart-prioridade"></canvas></div>
+        <div class="chart-card" style="grid-column:1/-1"><h3>% em Produção por Tipo de Regra</h3><canvas id="chart-prod-tipo"></canvas></div>
       </div>
       <div class="dash-section-title">Por Responsável</div>
       <div class="resp-section" id="resp-section"></div>
@@ -1052,18 +1053,48 @@ function renderDashboard() {
     rules.forEach(r => { if (r[key]) map[r[key]] = (map[r[key]] || 0) + 1; });
     return { labels: Object.keys(map), data: Object.values(map) };
   };
-  const makeChart = (id, type, labels, data, palette) => {
+  const makeChart = (id, type, labels, data, palette, extraOpts = {}) => {
     const canvas = document.getElementById(id);
     if (chartInstances[id]) chartInstances[id].destroy();
+    const isBar = type === 'bar';
+    const isHBar = extraOpts.indexAxis === 'y';
     chartInstances[id] = new Chart(canvas, {
-      type, data: { labels, datasets: [{ data, backgroundColor: palette || CHART_PALETTE, borderRadius: type === 'bar' ? 6 : 0, borderWidth: type === 'doughnut' ? 2 : 0, borderColor: '#fff' }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: type === 'bar' ? 'bottom' : 'right', labels: { font: { size: 11 }, boxWidth: 12 } } }, scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#eee' } }, x: { grid: { display: false } } } : {} }
+      type,
+      data: { labels, datasets: [{ label: '', data, backgroundColor: palette || CHART_PALETTE, borderRadius: isBar ? 6 : 0, borderWidth: type === 'doughnut' ? 2 : 0, borderColor: '#fff', ...extraOpts.datasetExtras }] },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        indexAxis: extraOpts.indexAxis || 'x',
+        plugins: {
+          legend: { display: type === 'doughnut', position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } },
+          tooltip: extraOpts.tooltip || {}
+        },
+        scales: isBar ? {
+          [isHBar ? 'x' : 'y']: { beginAtZero: true, max: extraOpts.max, ticks: { stepSize: extraOpts.stepSize || 1, callback: extraOpts.tickCb || undefined }, grid: { color: '#eee' } },
+          [isHBar ? 'y' : 'x']: { grid: { display: false } }
+        } : {}
+      }
     });
   };
   makeChart('chart-status', 'doughnut', ...Object.values(countBy('status', lists.status)), STATUS_COLORS);
   const byTipo = countBy('tipo', lists.tipos); makeChart('chart-tipo', 'bar', byTipo.labels, byTipo.data, CHART_PALETTE);
   const byModelo = countBy('modelo', lists.modelos); makeChart('chart-modelo', 'doughnut', byModelo.labels, byModelo.data, CHART_PALETTE);
   const byPri = countBy('prioridade', lists.prioridades); makeChart('chart-prioridade', 'bar', byPri.labels, byPri.data, ['#ef4444','#f59e0b','#10b981']);
+
+  // % em Produção por Tipo de Regra
+  const tiposComRegras = lists.tipos.filter(t => rules.some(r => r.tipo === t));
+  const prodPct = tiposComRegras.map(t => {
+    const total = rules.filter(r => r.tipo === t).length;
+    const prod  = rules.filter(r => r.tipo === t && r.status === 'Produção').length;
+    return total > 0 ? Math.round((prod / total) * 100) : 0;
+  });
+  const prodColors = prodPct.map(v => v >= 75 ? '#10b981' : v >= 40 ? '#4D49BF' : v > 0 ? '#f59e0b' : '#e2e8f0');
+  makeChart('chart-prod-tipo', 'bar', tiposComRegras, prodPct, prodColors, {
+    indexAxis: 'y',
+    max: 100,
+    stepSize: 25,
+    tickCb: v => v + '%',
+    tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% em Produção` } }
+  });
 
   // Por Responsável
   const respEl = document.getElementById('resp-section');
