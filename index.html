@@ -57,10 +57,12 @@
 
   /* CADASTRO */
   .cadastro-layout{padding:28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;overflow-y:auto;align-content:start;}
-  .list-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-  .list-card-header{background:var(--navy);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .list-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+  .list-card-header{background:var(--navy);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
   .list-card-header h3{font-size:13px;font-weight:600;letter-spacing:.02em}
-  .list-card-body{padding:14px 18px}
+  .list-card-body{display:flex;flex-direction:column;flex:1;overflow:hidden}
+  .list-items-scroll{overflow-y:auto;max-height:240px;padding:8px 18px 0}
+  .list-card-add{padding:12px 18px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
   .list-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
   .list-item:last-child{border-bottom:none}
   .list-item-actions{display:flex;gap:6px;flex-shrink:0}
@@ -68,10 +70,10 @@
   .btn-icon:hover{background:var(--bg);color:var(--blue)}
   .btn-icon.del:hover{color:#ef4444}
   .btn-icon svg{width:14px;height:14px}
-  .add-item-row{display:flex;flex-direction:column;gap:8px;margin-top:14px}
-  .add-item-row input{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none;}
+  .add-item-row{display:flex;gap:8px;align-items:center}
+  .add-item-row input{flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none;}
   .add-item-row input:focus{border-color:var(--blue)}
-  .btn-add{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s;width:100%;text-align:center;}
+  .btn-add{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s;white-space:nowrap;flex-shrink:0}
   .btn-add:hover{background:var(--blue-light)}
 
   /* ACOMPANHAMENTO */
@@ -688,17 +690,22 @@ function renderCadastro() {
     card.innerHTML = `
       <div class="list-card-header"><h3>${label}</h3><span style="font-size:11px;opacity:.7">${items.length} itens</span></div>
       <div class="list-card-body">
-        ${items.map((item, i) => `
-          <div class="list-item">
-            <span>${item}</span>
-            <div class="list-item-actions">
-              <button class="btn-icon" onclick="editListItem('${key}',${i})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 1.83H5v-.83l9.06-9.06.83.83L5.92 19.08zM20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 000-1.41z"/></svg></button>
-              <button class="btn-icon del" onclick="deleteListItem('${key}',${i})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg></button>
-            </div>
-          </div>`).join('')}
-        <div class="add-item-row" style="margin-top:10px">
-          <input type="text" id="new-${key}" placeholder="Novo item…" onkeydown="if(event.key==='Enter')addListItem('${key}')"/>
-          <button class="btn-add" onclick="addListItem('${key}')">+ Adicionar</button>
+        <div class="list-items-scroll">
+          ${items.length === 0 ? '<p style="color:var(--text-muted);font-size:12px;padding:8px 0">Nenhum item cadastrado.</p>' : ''}
+          ${items.map((item, i) => `
+            <div class="list-item">
+              <span>${item}</span>
+              <div class="list-item-actions">
+                <button class="btn-icon" onclick="editListItem('${key}',${i})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 1.83H5v-.83l9.06-9.06.83.83L5.92 19.08zM20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 000-1.41z"/></svg></button>
+                <button class="btn-icon del" onclick="deleteListItem('${key}',${i})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg></button>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="list-card-add">
+          <div class="add-item-row">
+            <input type="text" id="new-${key}" placeholder="Novo item…" onkeydown="if(event.key==='Enter')addListItem('${key}')"/>
+            <button class="btn-add" onclick="addListItem('${key}')">+ Adicionar</button>
+          </div>
         </div>
       </div>`;
     layout.appendChild(card);
